@@ -2,7 +2,6 @@ package zonas;
 
 import org.jaudiotagger.audio.AudioFile;
 import org.jaudiotagger.audio.AudioFileIO;
-import org.jaudiotagger.tag.FieldDataInvalidException;
 import org.jaudiotagger.tag.FieldKey;
 import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.datatype.Artwork;
@@ -27,13 +26,15 @@ public class AudioTag {
                 put(FieldKey.TITLE, name);
                 put(FieldKey.ARTIST, artist.replaceAll(",", "/"));  // jaudiotagger中默认使用/作为分隔符添加多个艺术家
                 put(FieldKey.ALBUM, album);
+                put(FieldKey.ALBUM_ARTIST, null);
                 // Artwork专辑图单独处理
             }};
             tags.forEach((key, value) -> {
                 tag.deleteField(key);
                 try {
-                    tag.addField(key, value);
-                } catch (FieldDataInvalidException e) {
+                    if (value != null)
+                        tag.addField(key, value);
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             });
