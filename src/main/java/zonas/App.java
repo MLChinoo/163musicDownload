@@ -38,19 +38,20 @@ public class App {
             if (map.get("url") != null && type != null) {
                 filename = "%s.%s".formatted(filename, type.toString());
                 try {
+                    System.out.println("┌ 正在下载：" + Util.formatFilePath(filename));
                     byte[] data = Util.fileDownload(map.get("url").toString());
                     String filepath = "music163" + File.separator + Util.formatFilePath(filename);
                     FileOutputStream outputStream = new FileOutputStream(filepath);
                     outputStream.write(data);
-                    System.out.println("已下载歌曲：" + Util.formatFilePath(filename));
+                    System.out.println("├────下载成功 √");// + Util.formatFilePath(filename));
                     outputStream.close();
 
                     if (AudioTag.setAudioTag(filepath, map.get("name").toString(), map.get("singer").toString(),
-                            map.get("album").toString(), map.get("pic").toString()))
+                            map.get("album").toString(), map.get("picurl").toString()))
                     {
-                        System.out.println("添加标签成功：" + Util.formatFilePath(filename));
+                        System.out.println("└────添加标签成功 √");// + Util.formatFilePath(filename));
                     } else {
-                        System.out.println("添加标签失败：" + Util.formatFilePath(filename));
+                        System.out.println("└────添加标签失败 ×");// + Util.formatFilePath(filename));
                     }
                 } catch (IOException e) {
                     System.out.println("无法创建歌曲文件：" + filename);

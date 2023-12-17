@@ -8,15 +8,17 @@ import org.jaudiotagger.tag.Tag;
 import org.jaudiotagger.tag.datatype.Artwork;
 
 import java.io.File;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class AudioTag {
-    public static boolean setAudioTag(String filepath, String name, String artist, String album, String picB64) {
+    static {
         Logger.getLogger("org.jaudiotagger").setLevel(Level.OFF);;
+    }
+
+    public static boolean setAudioTag(String filepath, String name, String artist, String album, String picurl) {
         try {
             AudioFile audioFile = AudioFileIO.read(new File(filepath));
             Tag tag = audioFile.getTag();
@@ -38,11 +40,12 @@ public class AudioTag {
 
             Artwork artwork = new Artwork();
             artwork.setMimeType("image/jpeg");
-            artwork.setBinaryData(Base64.getDecoder().decode(picB64));
+            artwork.setBinaryData(Util.fileDownload(picurl));
             tag.setField(artwork);
 
             audioFile.setTag(tag);
             audioFile.commit();
+
             return true;
         } catch (Exception e) {
             e.printStackTrace();
