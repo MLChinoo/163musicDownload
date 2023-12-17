@@ -1,5 +1,9 @@
 package zonas;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,13 +84,14 @@ public class API {
             // 获取专辑信息
             Map<String, Object> al = (Map<String, Object>) map.get("al");
             String album = al.get("name").toString();
-            String pic = null;  // picUrl
+            String picB64 = readImageUrlToBase64(al.get("picUrl").toString());
 
             singers.deleteCharAt(singers.length() - 1);
             songs.put("id", Util.StringToInt(map.get("id").toString()));
             songs.put("name", map.get("name"));
             songs.put("singer", singers);
             songs.put("album", album);
+            songs.put("pic", picB64);
             songs.put("filename", songs.get("name") + " - " + songs.get("singer"));  // 曲名在前歌手在后
             outList.add(songs);
         }
@@ -96,5 +101,24 @@ public class API {
             return ids.substring(0, ids.length() - 1);
         }
 
+    }
+
+    private static String readImageUrlToBase64(String imageUrl) {
+        try {
+            URL url = new URL(imageUrl);
+            byte[] imageData;
+            InputStream in = url.openStream();
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+            imageData = out.toByteArray();
+            return Base64.getEncoder().encodeToString(imageData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 }

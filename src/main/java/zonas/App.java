@@ -45,8 +45,8 @@ public class App {
                     System.out.println("已下载歌曲：" + Util.formatFilePath(filename));
                     outputStream.close();
 
-                    if (AudioTag.setAudioTag(filepath, map.get("name").toString(),
-                            map.get("singer").toString(), map.get("album").toString()))
+                    if (AudioTag.setAudioTag(filepath, map.get("name").toString(), map.get("singer").toString(),
+                            map.get("album").toString(), map.get("pic").toString()))
                     {
                         System.out.println("添加标签成功：" + Util.formatFilePath(filename));
                     } else {
