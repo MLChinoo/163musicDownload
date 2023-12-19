@@ -3,11 +3,21 @@ package zonas;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 public class App {
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
+    public static Config config;
+    public static void main(String[] args) throws ExecutionException, InterruptedException, IOException {
+        try {
+            config = Config.load(Config.defaultConfigPath);
+        } catch (NoSuchFileException e) {
+            System.out.println("Creating a default config...");
+            config = new Config();
+            Config.save(Config.defaultConfigPath, config);
+        }
+
         Scanner sc = new Scanner(System.in);
         System.out.print("请选择下载类型（1.歌单id 2.歌曲id）：");
         String temp = sc.nextLine();
@@ -27,7 +37,7 @@ public class App {
         }
         API.song_url(ids, playlist);
         System.out.println("解析完成，共下载 " + playlist.size() + " 首歌曲");
-        if (!Util.createDir("music163")) {
+        if (!Util.createDir(Util.defaultDirName)) {
             System.out.println("创建文件夹失败，退出下载");
             return;
         }
@@ -41,7 +51,7 @@ public class App {
                 try {
                     System.out.println("┌ （%d/%d）正在下载：".formatted(counter, playlist.size()) + Util.formatFilePath(filename));
                     byte[] data = Util.fileDownload(map.get("url").toString());
-                    String filepath = "music163" + File.separator + Util.formatFilePath(filename);
+                    String filepath = Util.defaultDirName + File.separator + Util.formatFilePath(filename);
                     FileOutputStream outputStream = new FileOutputStream(filepath);
                     outputStream.write(data);
                     System.out.println("├────下载成功 √");

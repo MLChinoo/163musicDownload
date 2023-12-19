@@ -10,14 +10,14 @@ import org.jaudiotagger.tag.reference.PictureTypes;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static zonas.App.config;
 
 public class AudioTag {
     static {
@@ -29,39 +29,54 @@ public class AudioTag {
             AudioFile audioFile = AudioFileIO.read(new File(filepath));
             Tag tag = audioFile.getTag();
 
-            Map<FieldKey, String> tags = new HashMap<>() {{
-                put(FieldKey.TITLE, name);
-                put(FieldKey.ARTIST, artist.replaceAll(",", "/"));  // jaudiotagger中默认使用/作为分隔符添加多个艺术家
-                put(FieldKey.ALBUM, album);
-                put(FieldKey.ALBUM_ARTIST, null);
-                // Artwork专辑图单独处理
-            }};
-            tags.forEach((key, value) -> {
-                tag.deleteField(key);
-                try {
-                    if (value != null)
-                        tag.addField(key, value);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-
-            byte[] picData = Util.fileDownload(picurl);
-            String mimeType = ImageFormats.getMimeTypeForBinarySignature(picData);
-            if (!mimeType.equals("image/jpeg")) {
-                if (mimeType.equals("image/png")) {
-                    picData = convertPNGtoJPG(picData);
-                } else {
-                    System.out.println("Unsupported mimeType: " + mimeType);
-                    picData = null;
-                }
+            if (config.infotags.addInFile) {
+                Map<FieldKey, String> tags = new HashMap<>() {{
+                    put(FieldKey.TITLE, name);
+                    put(FieldKey.ARTIST, artist.replaceAll(",", "/"));  // jaudiotagger中默认使用/作为分隔符添加多个艺术家
+                    put(FieldKey.ALBUM, album);
+                    put(FieldKey.ALBUM_ARTIST, null);
+                    // Artwork专辑图单独处理
+                }};
+                tags.forEach((key, value) -> {
+                    tag.deleteField(key);
+                    try {
+                        if (value != null)
+                            tag.addField(key, value);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
             }
-            if (picData != null) {
-                Artwork artwork = new Artwork();
-                artwork.setBinaryData(picData);
-                artwork.setMimeType(ImageFormats.getMimeTypeForBinarySignature(artwork.getBinaryData()));
-                artwork.setPictureType(PictureTypes.DEFAULT_ID);
-                tag.setField(artwork);
+
+            if (config.cover.addInFile || config.cover.saveAsFile) {
+                byte[] picData = Util.fileDownload(picurl);
+                String mimeType = ImageFormats.getMimeTypeForBinarySignature(picData);
+                switch (mimeType) {
+                    case ImageFormats.MIME_TYPE_JPEG:
+                    case ImageFormats.MIME_TYPE_JPG:
+                        break;
+                    case ImageFormats.MIME_TYPE_PNG:
+                        if (config.cover.convertToJpg)
+                            picData = convertPNGtoJPG(picData);
+                        break;
+                    default:
+                        System.out.println("Unsupported mimeType: " + mimeType);
+                        picData = null;
+                }
+                if (picData != null) {
+                    Artwork artwork = new Artwork();
+                    artwork.setBinaryData(picData);
+                    artwork.setMimeType(ImageFormats.getMimeTypeForBinarySignature(artwork.getBinaryData()));
+                    artwork.setPictureType(PictureTypes.DEFAULT_ID);
+                    if (config.cover.addInFile) {
+                        tag.setField(artwork);
+                    }
+                    if (config.cover.saveAsFile) {
+                        try (FileOutputStream file = new FileOutputStream(Path.of(Util.changeFileExtension(filepath, ImageFormats.getFormatForMimeType(artwork.getMimeType()).toLowerCase())).toFile())) {
+                            file.write(artwork.getBinaryData());
+                        }
+                    }
+                }
             }
 
             audioFile.setTag(tag);

@@ -12,9 +12,9 @@ import java.io.*;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,22 +22,14 @@ import java.util.concurrent.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static zonas.App.config;
+
 class Util {
     private Util() {
     }
 
     static final String HOSTURL = "http://music.163.com/";
-    static String COOKIES = "";
-
-    static {
-        try {
-            COOKIES = Files.readString(Path.of("cookies.txt"), StandardCharsets.UTF_8);
-        } catch (NoSuchFileException e) {
-            System.out.println("cookies.txt not found!");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
+    static final String defaultDirName = "music163";
 
     static String aesEncrypt(String text, byte[] key, byte[] iv) {
         String encryptText = "";
@@ -45,11 +37,9 @@ class Util {
             SecretKeySpec keySpec = new SecretKeySpec(key, "AES");
             Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
             cipher.init(Cipher.ENCRYPT_MODE, keySpec, new IvParameterSpec(iv));
-            byte[] cipherData = cipher.doFinal(text.getBytes("UTF-8"));
+            byte[] cipherData = cipher.doFinal(text.getBytes(StandardCharsets.UTF_8));
             encryptText = new Base64().encodeAsString(cipherData);
         } catch (GeneralSecurityException e) {
-            e.printStackTrace();
-        } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
         return encryptText;
@@ -80,7 +70,7 @@ class Util {
         headers.put("Origin", HOSTURL);
         headers.put("Referer", HOSTURL);
         headers.put("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36");
-        headers.put("Cookie", COOKIES);
+        headers.put("Cookie", config.cookies);
         return Requests.post(url).socksTimeout(2000).headers(headers).body(data).send().readToText();
     }
 
@@ -96,26 +86,24 @@ class Util {
 
     static byte[] fileDownload(final String netURL) throws ExecutionException, InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(10);
-        Future<byte[]> future = executorService.submit(new Callable<byte[]>() {
-            public byte[] call() {
-                byte[] getData = new byte[0];
-                InputStream is = null;
+        Future<byte[]> future = executorService.submit(() -> {
+            byte[] getData = new byte[0];
+            InputStream is = null;
+            try {
+                URL url = new URL(netURL);
+                URLConnection connection = url.openConnection();
+                is = connection.getInputStream();
+                getData = toByteArray(is);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
                 try {
-                    URL url = new URL(netURL);
-                    URLConnection connection = url.openConnection();
-                    is = connection.getInputStream();
-                    getData = toByteArray(is);
+                    is.close();
                 } catch (IOException e) {
                     e.printStackTrace();
-                } finally {
-                    try {
-                        is.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
                 }
-                return getData;
             }
+            return getData;
         });
         return future.get();
     }
@@ -143,5 +131,11 @@ class Util {
         Pattern p = Pattern.compile(regEx);
         Matcher m = p.matcher(s);
         return m.replaceAll("").trim();
+    }
+
+    public static String changeFileExtension(String filePath, String newExtension) {
+        Path originalPath = Paths.get(filePath);
+        String newFileName = originalPath.getFileName().toString().replaceFirst("\\.\\w+$", "." + newExtension);
+        return FileSystems.getDefault().getPath(originalPath.getParent().toString(), newFileName).toString();
     }
 }

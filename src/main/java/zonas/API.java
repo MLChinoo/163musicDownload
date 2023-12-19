@@ -97,4 +97,11 @@ public class API {
             return ids.substring(0, ids.length() - 1);
         }
     }
+
+    public static String getSongLyric(String id) {
+        String lyricJson = Util.getJson("", "%sapi/song/lyric?id=%s&lv=1&kv=1&tv=-1".formatted(Util.HOSTURL, id));
+        Map<String, Object> lyricObject = Util.getMapByJson(lyricJson);
+        Map<String, Object> lrc = (Map<String, Object>) lyricObject.get("lrc");
+        return (String) lrc.get("lyric");
+    }
 }
